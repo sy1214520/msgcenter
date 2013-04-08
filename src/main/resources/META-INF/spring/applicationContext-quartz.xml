@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:camel="http://camel.apache.org/schema/spring" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:amq="http://activemq.apache.org/schema/core"
+	xsi:schemaLocation="http://activemq.apache.org/schema/core http://activemq.apache.org/schema/core/activemq-core.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/beans">
+	<bean name="quartzScheduler"
+		class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+		<property name="dataSource">
+			<ref bean="dataSource" />
+		</property>
+		<property name="applicationContextSchedulerContextKey" value="applicationContextKey" />
+		<property name="configLocation" value="classpath:quartz.properties" />
+		<property name="startupDelay" value="30" />
+		<property name="overwriteExistingJobs" value="true" />
+		<property name="triggers">
+			<list>
+				<!-- 定时发送短信 -->
+				<ref bean="sendSMSDetailTrigger" />
+				<!-- 定时接收上行短信 -->
+				<ref bean="getSMSMessageTrigger" />
+				<!-- 定时查询短信发送报告 -->
+				<ref bean="queryStatusReportTrigger" />
+				<!-- 删除不活跃设备 -->
+				<ref bean="deleteInactiveDevicesTrigger" />
+			</list>
+		</property>
+	</bean>
+	<bean id="sendSMSDetail1"
+		class="frameworkx.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="quartzService" />
+		<property name="targetMethod" value="cyclicSendWaitSMSDetail" />
+		<property name="shouldRecover" value="false" />
+		<property name="concurrent" value="false" />
+	</bean>
+	<bean id="sendSMSDetailTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+		<property name="jobDetail">
+			<ref bean="sendSMSDetail1" />
+		</property>
+		<property name="cronExpression">
+			<value>0 0/1 * * * ?</value>
+		</property>
+	</bean>
+
+	<bean id="getSMSMessageDetail1"
+		class="frameworkx.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="quartzService" />
+		<property name="targetMethod" value="cyclicGetMessage" />
+		<property name="shouldRecover" value="false" />
+		<property name="concurrent" value="false" />
+	</bean>
+	<bean id="getSMSMessageTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+		<property name="jobDetail">
+			<ref bean="getSMSMessageDetail1" />
+		</property>
+		<property name="cronExpression">
+			<value>0/20 * * * * ?</value>
+		</property>
+	</bean>
+
+	<bean id="queryStatusReportDetail1"
+		class="frameworkx.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="quartzService" />
+		<property name="targetMethod" value="cyclicQueryStatusReport" />
+		<property name="shouldRecover" value="false" />
+		<property name="concurrent" value="false" />
+	</bean>
+	<bean id="queryStatusReportTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+		<property name="jobDetail">
+			<ref bean="queryStatusReportDetail1" />
+		</property>
+		<property name="cronExpression">
+			<value>0 0/5 * * * ?</value>
+		</property>
+	</bean>
+	
+	<bean id="deleteInactiveDevicesDetail1"
+		class="frameworkx.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="quartzService" />
+		<property name="targetMethod" value="deleteInactiveDevices" />
+		<property name="shouldRecover" value="false" />
+		<property name="concurrent" value="false" />
+	</bean>
+	<bean id="deleteInactiveDevicesTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+		<property name="jobDetail">
+			<ref bean="deleteInactiveDevicesDetail1" />
+		</property>
+		<property name="cronExpression">
+			<value>0 0/20 * * * ?</value>
+		</property>
+	</bean>
+
+</beans>
